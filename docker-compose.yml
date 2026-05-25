@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Centralized Parameter and Aggregation Server
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: federated-server
+    command: python experiments/run_federated_noniid.py
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DP_EPSILON=5.0
+      - DP_CLIP_NORM=1.0
+    volumes:
+      - ./results:/app/results
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"
+    ipc: host
+
+  # Hospital Node 1
+  client1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospital-client-1
+    command: python -c "import time; time.sleep(5); import flwr as fl; from models.full_model import PathologyClassifier; from data.partition_generator import get_noniid_client_loaders; from federated.client import FlowerClient; import torch; device = torch.device('cpu'); model = PathologyClassifier(num_classes=9).to(device); train_l, val_l = get_noniid_client_loaders(0, num_clients=3, alpha=0.3); fl.client.start_numpy_client(server_address='server:8080', client=FlowerClient(model, train_l, val_l, device))"
+    depends_on:
+      - server
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+    ipc: host
+
+  # Hospital Node 2
+  client2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospital-client-2
+    command: python -c "import time; time.sleep(5); import flwr as fl; from models.full_model import PathologyClassifier; from data.partition_generator import get_noniid_client_loaders; from federated.client import FlowerClient; import torch; device = torch.device('cpu'); model = PathologyClassifier(num_classes=9).to(device); train_l, val_l = get_noniid_client_loaders(1, num_clients=3, alpha=0.3); fl.client.start_numpy_client(server_address='server:8080', client=FlowerClient(model, train_l, val_l, device))"
+    depends_on:
+      - server
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+    ipc: host
+
+  # Hospital Node 3
+  client3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospital-client-3
+    command: python -c "import time; time.sleep(5); import flwr as fl; from models.full_model import PathologyClassifier; from data.partition_generator import get_noniid_client_loaders; from federated.client import FlowerClient; import torch; device = torch.device('cpu'); model = PathologyClassifier(num_classes=9).to(device); train_l, val_l = get_noniid_client_loaders(2, num_clients=3, alpha=0.3); fl.client.start_numpy_client(server_address='server:8080', client=FlowerClient(model, train_l, val_l, device))"
+    depends_on:
+      - server
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+    ipc: host

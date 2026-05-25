@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (NEVER COMMIT)
+data/raw/
+data/partitions/
+*.nii
+*.nii.gz
+*.dcm
+*.mhd
+*.npz
+
+# Model Checkpoints
+models/checkpoints/
+*.pth
+*.pt
+*.onnx
+!models/.gitkeep
+
+# Logs (Keep small logs, ignore large ones)
+logs/*.log
+!logs/README.md
+*.csv
+!results/*.csv
+
+# Environment Variables
+.env
+.env.local
+*.secret
+credentials.json
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Temporary
+tmp/
+temp/
+*.tmp

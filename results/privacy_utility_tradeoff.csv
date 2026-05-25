@@ -1,0 +1,5 @@
+epsilon,final_accuracy,peak_accuracy,accuracy_drop,privacy_budget_total
+0.0,0.8324,0.8590,0.0000,0.0
+5.0,0.8235,0.8512,0.0089,50.0
+10.0,0.8291,0.8568,0.0033,100.0
+1.0,0.7980,0.8312,0.0344,10.0
