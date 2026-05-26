@@ -55,9 +55,8 @@ class DistanceAwareAggregation(FedAvg):
             compressed = fit_res.metrics.get("compressed", "0") == "1"
             if compressed and self.fipca.is_fitted() and self.global_weights_flat is not None:
                 scores = parameters_to_ndarrays(fit_res.parameters)[0]
-                delta_flat = reconstruct_delta(scores, self.fipca.pca.components_, self.fipca.pca.mean_)
-                full_flat  = self.global_weights_flat + delta_flat
-                weights    = unflatten_weights(full_flat, self.param_shapes)
+                full_flat = reconstruct_delta(scores, self.fipca.pca.components_, self.fipca.pca.mean_)
+                weights = unflatten_weights(full_flat, self.param_shapes)
             else:
                 weights = parameters_to_ndarrays(fit_res.parameters)
                 if self.param_shapes is None and weights:
@@ -85,13 +84,16 @@ class DistanceAwareAggregation(FedAvg):
 
         new_global_flat = flatten_weights(global_weights)
         prev_k = self.fipca.n_components_current
-        self.fipca.update(new_global_flat)
+        pca_input = new_global_flat
+        self.fipca.update(pca_input)
         self.global_weights_flat = new_global_flat
         if self.fipca.is_fitted() and self.fipca.n_components_current != prev_k:
             self.current_basis_version += 1
             self.basis_just_changed = True
         else:
             self.basis_just_changed = self.fipca.basis_changed()
+            if self.basis_just_changed:
+                self.current_basis_version += 1
 
         bytes_before_list = [int(r.metrics.get("bytes_before", "0")) for _, r in results]
         bytes_after_list  = [int(r.metrics.get("bytes_after",  "0")) for _, r in results]
@@ -109,4 +111,4 @@ class DistanceAwareAggregation(FedAvg):
             "server_round":   server_round,
             "client_weights": agg_weights.tolist(),
             "metric":         self.similarity_metric,
-        }
+        }

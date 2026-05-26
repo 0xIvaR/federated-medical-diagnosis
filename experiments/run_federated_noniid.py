@@ -17,11 +17,11 @@ Configuration precedence (highest → lowest):
 DEFAULTS = {
     "ALPHA": 0.3,
     "NUM_CLIENTS": 3,
-    "NUM_ROUNDS": 10,
+    "NUM_ROUNDS": 5,
     "DP_EPSILON": 5.0,
     "DP_CLIP_NORM": 1.0,
     "RANDOM_SEED": 42,
-    "TARGET_COMPONENTS": 500
+    "TARGET_COMPONENTS": 15
 }
 
 # 1. Load config.yaml if it exists

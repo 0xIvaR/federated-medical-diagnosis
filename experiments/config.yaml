@@ -3,8 +3,8 @@
 
 ALPHA: 0.3                # Non-IID Dirichlet skew (alpha=0.3 corresponds to high statistical skew)
 NUM_CLIENTS: 3            # Total number of hospital nodes in simulation
-NUM_ROUNDS: 10            # Number of communication rounds
-TARGET_COMPONENTS: 500    # FIPCA target projection dimensionality (reduces feature footprint by 99.6%)
+NUM_ROUNDS: 5            # Number of communication rounds
+TARGET_COMPONENTS: 15     # FIPCA target projection dimensionality
 DP_EPSILON: 5.0           # Differential Privacy epsilon budget per round (ε=5.0)
 DP_CLIP_NORM: 1.0         # Differential Privacy L2 norm clipping threshold
 RANDOM_SEED: 42           # Global random seed for PyTorch, NumPy, and random module

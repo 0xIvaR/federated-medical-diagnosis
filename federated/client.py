@@ -68,8 +68,7 @@ class FlowerClient(NumPyClient):
         if pca_fitted and FlowerClient._cached_basis is not None and self.global_weights_flat is not None:
             components, mean_ = FlowerClient._cached_basis
             local_flat = flatten_weights(raw_weights)
-            delta = local_flat - self.global_weights_flat
-            scores = project_delta(delta, components, mean_).astype(np.float32)
+            scores = project_delta(local_flat, components, mean_).astype(np.float32)
             dp_epsilon = float(config.get("dp_epsilon", "0"))
             dp_clip = float(config.get("dp_clip_norm", "1.0"))
             if dp_epsilon > 0:

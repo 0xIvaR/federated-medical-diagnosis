@@ -20,7 +20,7 @@ class ServerFIPCA:
         self.history.append(global_flat.astype(np.float32))
         if len(self.history) < 2:
             return
-        k = min(self.target_components, max(2, len(self.history) - 1))
+        k = min(self.target_components, max(15, len(self.history) - 1))
         if k != self.n_components_current:
             self.pca = IncrementalPCA(n_components=k)
             history_matrix = np.stack(list(self.history))
@@ -32,6 +32,7 @@ class ServerFIPCA:
             try:
                 self.pca.partial_fit(global_flat.reshape(1, -1))
                 self._fitted = True
+                self._basis_changed = True
             except Exception:
                 pass
 
@@ -58,11 +59,16 @@ def _decode_basis(b64_str: str, n_k: int, d: int) -> tuple:
 
 
 def project_delta(delta_flat: np.ndarray, components: np.ndarray, mean: np.ndarray = None) -> np.ndarray:
+    if mean is not None:
+        delta_flat = delta_flat - mean
     return (delta_flat.astype(np.float32) @ components.T).astype(np.float32)
 
 
 def reconstruct_delta(scores: np.ndarray, components: np.ndarray, mean: np.ndarray = None) -> np.ndarray:
-    return (scores.astype(np.float32) @ components).astype(np.float32)
+    rec = (scores.astype(np.float32) @ components).astype(np.float32)
+    if mean is not None:
+        rec = rec + mean
+    return rec
 
 
 def flatten_weights(ndarrays: list) -> np.ndarray:
