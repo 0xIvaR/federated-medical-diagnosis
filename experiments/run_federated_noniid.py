@@ -17,11 +17,18 @@ Configuration precedence (highest → lowest):
 DEFAULTS = {
     "ALPHA": 0.3,
     "NUM_CLIENTS": 3,
-    "NUM_ROUNDS": 5,
+    "NUM_ROUNDS": 20,
     "DP_EPSILON": 5.0,
     "DP_CLIP_NORM": 1.0,
     "RANDOM_SEED": 42,
-    "TARGET_COMPONENTS": 15
+    "TARGET_COMPONENTS": 15,
+    "FIPCA_WARMUP_ROUNDS": 6,
+    "FIPCA_MIN_COMPONENTS": 8,
+    "FIPCA_MAX_RECON_ERROR": 0.05,
+    "DAA_DISTANCE_STRENGTH": 0.35,
+    "DAA_MIN_WEIGHT": 0.20,
+    "DAA_MAX_WEIGHT": 0.45,
+    "SERVER_LR_COMPRESSED": 0.50
 }
 
 # 1. Load config.yaml if it exists
@@ -57,6 +64,13 @@ EPSILON = get_config_val("DP_EPSILON", DEFAULTS["DP_EPSILON"])
 CLIP_NORM = get_config_val("DP_CLIP_NORM", DEFAULTS["DP_CLIP_NORM"])
 SEED = get_config_val("RANDOM_SEED", DEFAULTS["RANDOM_SEED"])
 TARGET_COMPONENTS = get_config_val("TARGET_COMPONENTS", DEFAULTS["TARGET_COMPONENTS"])
+FIPCA_WARMUP_ROUNDS = get_config_val("FIPCA_WARMUP_ROUNDS", DEFAULTS["FIPCA_WARMUP_ROUNDS"])
+FIPCA_MIN_COMPONENTS = get_config_val("FIPCA_MIN_COMPONENTS", DEFAULTS["FIPCA_MIN_COMPONENTS"])
+FIPCA_MAX_RECON_ERROR = get_config_val("FIPCA_MAX_RECON_ERROR", DEFAULTS["FIPCA_MAX_RECON_ERROR"])
+DAA_DISTANCE_STRENGTH = get_config_val("DAA_DISTANCE_STRENGTH", DEFAULTS["DAA_DISTANCE_STRENGTH"])
+DAA_MIN_WEIGHT = get_config_val("DAA_MIN_WEIGHT", DEFAULTS["DAA_MIN_WEIGHT"])
+DAA_MAX_WEIGHT = get_config_val("DAA_MAX_WEIGHT", DEFAULTS["DAA_MAX_WEIGHT"])
+SERVER_LR_COMPRESSED = get_config_val("SERVER_LR_COMPRESSED", DEFAULTS["SERVER_LR_COMPRESSED"])
 
 random.seed(SEED)
 np.random.seed(SEED)
@@ -95,6 +109,12 @@ def main():
     print(f"  Rounds: {NUM_ROUNDS}")
     print(f"  Alpha (skew): {ALPHA}")
     print(f"  Strategy: DistanceAware + FIPCA (K={TARGET_COMPONENTS}) + DP")
+    print(f"  FIPCA Warmup Rounds: {FIPCA_WARMUP_ROUNDS}")
+    print(f"  FIPCA Min Components: {FIPCA_MIN_COMPONENTS}")
+    print(f"  FIPCA Max Recon Error: {FIPCA_MAX_RECON_ERROR}")
+    print(f"  DAA Weight Bounds: [{DAA_MIN_WEIGHT}, {DAA_MAX_WEIGHT}]")
+    print(f"  DAA Distance Strength: {DAA_DISTANCE_STRENGTH}")
+    print(f"  Server LR Compressed: {SERVER_LR_COMPRESSED}")
     print(f"  Epsilon: {EPSILON}")
     print(f"  Clip Norm: {CLIP_NORM}")
     print(f"  M6A Baseline Accuracy: 83.24%")
@@ -111,6 +131,13 @@ def main():
         target_components=TARGET_COMPONENTS,
         dp_epsilon=EPSILON,
         dp_clip_norm=CLIP_NORM,
+        compression_warmup_rounds=FIPCA_WARMUP_ROUNDS,
+        min_pca_components=FIPCA_MIN_COMPONENTS,
+        max_recon_error=FIPCA_MAX_RECON_ERROR,
+        distance_strength=DAA_DISTANCE_STRENGTH,
+        min_weight=DAA_MIN_WEIGHT,
+        max_weight=DAA_MAX_WEIGHT,
+        server_lr_compressed=SERVER_LR_COMPRESSED,
     )
     
     fl.simulation.start_simulation(

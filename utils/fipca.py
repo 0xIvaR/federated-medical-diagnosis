@@ -17,15 +17,22 @@ class ServerFIPCA:
 
     def update(self, global_flat: np.ndarray) -> None:
         self._basis_changed = False
+        if len(self.history) > 0 and global_flat.shape[0] != self.history[0].shape[0]:
+            self.history.clear()
+            self.pca = None
+            self._fitted = False
+            self.n_components_current = 0
         self.history.append(global_flat.astype(np.float32))
         if len(self.history) < 2:
             return
-        k = min(self.target_components, max(15, len(self.history) - 1))
-        if k != self.n_components_current:
+        k = min(self.target_components, len(self.history) - 1)
+        if k < 1:
+            return
+        if k != self.n_components_current or self.pca is None:
             self.pca = IncrementalPCA(n_components=k)
             history_matrix = np.stack(list(self.history))
             self.pca.fit(history_matrix)
-            self.n_components_current = k
+            self.n_components_current = self.pca.n_components_
             self._fitted = True
             self._basis_changed = True
         else:
@@ -45,16 +52,25 @@ class ServerFIPCA:
     def get_basis_b64(self) -> tuple:
         components = self.pca.components_.astype(np.float32)
         mean_ = self.pca.mean_.astype(np.float32)
+        actual_n_components = components.shape[0]
+        actual_dim = components.shape[1]
+        print(f"[FIPCA-DEBUG] get_basis_b64: n_components_current={self.n_components_current}, "
+              f"actual_pca_n_components={actual_n_components}, actual_dim={actual_dim}, "
+              f"mean_shape={mean_.shape}, history_len={len(self.history)}")
+        if self.n_components_current != actual_n_components:
+            print(f"[FIPCA-WARNING] n_components_current ({self.n_components_current}) != "
+                  f"actual PCA n_components ({actual_n_components}). Using actual value.")
         raw = components.tobytes() + mean_.tobytes()
         compressed = zlib.compress(raw, level=1)
         b64 = base64.b64encode(compressed).decode("utf-8")
-        return b64, str(self.n_components_current), str(components.shape[1])
+        return b64, str(actual_n_components), str(actual_dim)
 
 
-def _decode_basis(b64_str: str, n_k: int, d: int) -> tuple:
+def decode_basis(b64_str: str, n_k: int, d: int) -> tuple:
     raw = zlib.decompress(base64.b64decode(b64_str))
-    components = np.frombuffer(raw[:n_k * d * 4], dtype=np.float32).reshape(n_k, d).copy()
-    mean_ = np.frombuffer(raw[n_k * d * 4:], dtype=np.float32).copy()
+    expected_size = n_k * d * 4
+    components = np.frombuffer(raw[:expected_size], dtype=np.float32).reshape(n_k, d).copy()
+    mean_ = np.frombuffer(raw[expected_size:], dtype=np.float32).copy()
     return components, mean_
 
 

@@ -2,7 +2,7 @@ import base64
 import json
 import zlib
 import numpy as np
-from utils.fipca import project_delta, flatten_weights
+from utils.fipca import project_delta, reconstruct_delta, flatten_weights
 from utils.differential_privacy import laplacian_noise
 import torch
 from flwr.client import NumPyClient
@@ -55,27 +55,46 @@ class FlowerClient(NumPyClient):
         bytes_before = int(self.global_weights_flat.nbytes) if self.global_weights_flat is not None else int(sum(a.nbytes for a in raw_weights))
         pca_fitted = config.get("pca_fitted", "0") == "1"
         basis_version = int(config.get("basis_version", "-1"))
+        min_components = int(config.get("pca_min_components", "8"))
+        max_recon_error = float(config.get("pca_max_recon_error", "0.05"))
 
         if pca_fitted and basis_version > FlowerClient._cached_basis_version and "pca_components" in config:
             n_k = int(config["n_components"])
             d = int(config["original_dim"])
             raw = zlib.decompress(base64.b64decode(config["pca_components"]))
-            components = np.frombuffer(raw[:n_k * d * 4], dtype=np.float32).reshape(n_k, d).copy()
-            mean_ = np.frombuffer(raw[n_k * d * 4:], dtype=np.float32).copy()
+            expected_components_size = n_k * d * 4
+            if len(raw) < expected_components_size:
+                actual_d = (len(raw) - 0) // (n_k * 4 + 4)
+                raise ValueError(f"Basis dimension mismatch: server says d={d}, but buffer implies d~={actual_d}. Raw size={len(raw)}, expected={expected_components_size}")
+            components = np.frombuffer(raw[:expected_components_size], dtype=np.float32).reshape(n_k, d).copy()
+            mean_ = np.frombuffer(raw[expected_components_size:], dtype=np.float32).copy()
             FlowerClient._cached_basis = (components, mean_)
             FlowerClient._cached_basis_version = basis_version
 
+        recon_error = float("nan")
         if pca_fitted and FlowerClient._cached_basis is not None and self.global_weights_flat is not None:
             components, mean_ = FlowerClient._cached_basis
             local_flat = flatten_weights(raw_weights)
             scores = project_delta(local_flat, components, mean_).astype(np.float32)
-            dp_epsilon = float(config.get("dp_epsilon", "0"))
-            dp_clip = float(config.get("dp_clip_norm", "1.0"))
-            if dp_epsilon > 0:
-                scores = laplacian_noise(scores, dp_epsilon, dp_clip)
-            payload = [scores]
-            bytes_after = int(scores.nbytes)
-            compressed = "1"
+            reconstructed = reconstruct_delta(scores, components, mean_)
+            recon_error = float(
+                np.linalg.norm(reconstructed - local_flat) / (np.linalg.norm(local_flat) + 1e-12)
+            )
+
+            if components.shape[0] >= min_components and recon_error <= max_recon_error:
+                dp_epsilon = float(config.get("dp_epsilon", "0"))
+                dp_clip = float(config.get("dp_clip_norm", "1.0"))
+                if dp_epsilon > 0:
+                    scores = laplacian_noise(scores, dp_epsilon, dp_clip)
+                payload = [scores]
+                bytes_after = int(scores.nbytes)
+                compressed = "1"
+            else:
+                dp_epsilon = 0.0
+                dp_clip = 1.0
+                payload = raw_weights
+                bytes_after = bytes_before
+                compressed = "0"
         else:
             dp_epsilon = 0.0
             dp_clip = 1.0
@@ -90,6 +109,7 @@ class FlowerClient(NumPyClient):
             "bytes_after":  str(bytes_after),
             "dp_epsilon":   str(dp_epsilon),
             "dp_clip_norm": str(dp_clip),
+            "recon_error":  str(recon_error),
         }
 
     def evaluate(self, parameters, config):

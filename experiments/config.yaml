@@ -3,8 +3,15 @@
 
 ALPHA: 0.3                # Non-IID Dirichlet skew (alpha=0.3 corresponds to high statistical skew)
 NUM_CLIENTS: 3            # Total number of hospital nodes in simulation
-NUM_ROUNDS: 5            # Number of communication rounds
+NUM_ROUNDS: 20            # Number of communication rounds
 TARGET_COMPONENTS: 15     # FIPCA target projection dimensionality
+FIPCA_WARMUP_ROUNDS: 6    # Send raw weights until PCA basis has enough stable history
+FIPCA_MIN_COMPONENTS: 8   # Minimum PCA rank before clients may compress
+FIPCA_MAX_RECON_ERROR: 0.05 # Maximum relative reconstruction error allowed for compression
+DAA_DISTANCE_STRENGTH: 0.35 # Blend between uniform and distance-aware client weighting
+DAA_MIN_WEIGHT: 0.20      # Lower bound for any hospital's aggregation weight
+DAA_MAX_WEIGHT: 0.45      # Upper bound for any hospital's aggregation weight
+SERVER_LR_COMPRESSED: 0.50 # Server damping factor when compressed client payloads are used
 DP_EPSILON: 5.0           # Differential Privacy epsilon budget per round (ε=5.0)
 DP_CLIP_NORM: 1.0         # Differential Privacy L2 norm clipping threshold
 RANDOM_SEED: 42           # Global random seed for PyTorch, NumPy, and random module
