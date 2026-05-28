@@ -56,7 +56,7 @@ def test_server_fipca_lifecycle():
     
     # Get basis and verify dimensions
     b64, n_components, original_dim = fipca.get_basis_b64()
-    assert n_components == "2"  # k = min(target, max(2, len(history)-1)) = min(5, max(2, 1)) = 2
+    assert n_components == "1"  # k = min(target, len(history)-1) = min(5, 1) = 1
     assert original_dim == str(d)
     
     # Feed more updates to reach target components
