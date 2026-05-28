@@ -12,13 +12,15 @@ class FlowerClient(NumPyClient):
     _cached_basis = None
     _cached_basis_version = -1
 
-    def __init__(self, model, train_loader, val_loader, device, local_epochs=1):
+    def __init__(self, model, train_loader, val_loader, device, local_epochs=1, learning_rate=0.0005, proximal_mu=0.01):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.device = device
         self.criterion = torch.nn.CrossEntropyLoss()
         self.local_epochs = local_epochs
+        self.learning_rate = learning_rate
+        self.proximal_mu = proximal_mu
         
         labels = np.concatenate([target.numpy().astype(int) for _, target in self.train_loader]).flatten()
         self.label_dist = (np.bincount(labels, minlength=9) / len(labels)).tolist()
@@ -37,7 +39,8 @@ class FlowerClient(NumPyClient):
         self.set_parameters(parameters)
         self.model.train()
         self.model.backbone.eval()
-        optimizer = torch.optim.Adam(self.model.head.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(self.model.head.parameters(), lr=self.learning_rate)
+        global_head_params = [param.detach().clone() for param in self.model.head.parameters()]
 
         for _ in range(self.local_epochs):
             for images, labels in self.train_loader:
@@ -48,6 +51,11 @@ class FlowerClient(NumPyClient):
                 optimizer.zero_grad()
                 logits = self.model(images)
                 loss = self.criterion(logits, labels)
+                if self.proximal_mu > 0:
+                    prox_term = torch.zeros((), device=self.device)
+                    for local_param, global_param in zip(self.model.head.parameters(), global_head_params):
+                        prox_term = prox_term + torch.sum((local_param - global_param) ** 2)
+                    loss = loss + 0.5 * self.proximal_mu * prox_term
                 loss.backward()
                 optimizer.step()
 
@@ -110,6 +118,8 @@ class FlowerClient(NumPyClient):
             "dp_epsilon":   str(dp_epsilon),
             "dp_clip_norm": str(dp_clip),
             "recon_error":  str(recon_error),
+            "learning_rate": str(self.learning_rate),
+            "proximal_mu":  str(self.proximal_mu),
         }
 
     def evaluate(self, parameters, config):

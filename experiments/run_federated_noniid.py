@@ -28,7 +28,11 @@ DEFAULTS = {
     "DAA_DISTANCE_STRENGTH": 0.35,
     "DAA_MIN_WEIGHT": 0.20,
     "DAA_MAX_WEIGHT": 0.45,
-    "SERVER_LR_COMPRESSED": 0.50
+    "SERVER_LR_COMPRESSED": 0.50,
+    "LOCAL_EPOCHS": 1,
+    "BATCH_SIZE": 32,
+    "CLIENT_LR": 0.0005,
+    "FEDPROX_MU": 0.01
 }
 
 # 1. Load config.yaml if it exists
@@ -71,6 +75,10 @@ DAA_DISTANCE_STRENGTH = get_config_val("DAA_DISTANCE_STRENGTH", DEFAULTS["DAA_DI
 DAA_MIN_WEIGHT = get_config_val("DAA_MIN_WEIGHT", DEFAULTS["DAA_MIN_WEIGHT"])
 DAA_MAX_WEIGHT = get_config_val("DAA_MAX_WEIGHT", DEFAULTS["DAA_MAX_WEIGHT"])
 SERVER_LR_COMPRESSED = get_config_val("SERVER_LR_COMPRESSED", DEFAULTS["SERVER_LR_COMPRESSED"])
+LOCAL_EPOCHS = get_config_val("LOCAL_EPOCHS", DEFAULTS["LOCAL_EPOCHS"])
+BATCH_SIZE = get_config_val("BATCH_SIZE", DEFAULTS["BATCH_SIZE"])
+CLIENT_LR = get_config_val("CLIENT_LR", DEFAULTS["CLIENT_LR"])
+FEDPROX_MU = get_config_val("FEDPROX_MU", DEFAULTS["FEDPROX_MU"])
 
 random.seed(SEED)
 np.random.seed(SEED)
@@ -95,10 +103,18 @@ def client_fn(cid: str):
         client_id=client_id,
         num_clients=NUM_CLIENTS,
         alpha=ALPHA,
-        batch_size=32
+        batch_size=BATCH_SIZE
     )
     
-    return FlowerClient(model, train_loader, val_loader, device)
+    return FlowerClient(
+        model,
+        train_loader,
+        val_loader,
+        device,
+        local_epochs=LOCAL_EPOCHS,
+        learning_rate=CLIENT_LR,
+        proximal_mu=FEDPROX_MU,
+    )
 
 def main():
     print("="*60)
@@ -115,6 +131,10 @@ def main():
     print(f"  DAA Weight Bounds: [{DAA_MIN_WEIGHT}, {DAA_MAX_WEIGHT}]")
     print(f"  DAA Distance Strength: {DAA_DISTANCE_STRENGTH}")
     print(f"  Server LR Compressed: {SERVER_LR_COMPRESSED}")
+    print(f"  Local Epochs: {LOCAL_EPOCHS}")
+    print(f"  Batch Size: {BATCH_SIZE}")
+    print(f"  Client LR: {CLIENT_LR}")
+    print(f"  FedProx Mu: {FEDPROX_MU}")
     print(f"  Epsilon: {EPSILON}")
     print(f"  Clip Norm: {CLIP_NORM}")
     print(f"  M6A Baseline Accuracy: 83.24%")
