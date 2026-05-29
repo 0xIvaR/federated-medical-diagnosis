@@ -17,7 +17,7 @@ where $d$ is the number of trainable weights in the network head.
 ### Server-Side Basis Maintenance
 The central server maintains a low-rank basis matrix $W_t \in \mathbb{R}^{K \times d}$ representing the $K$ principal directions of global updates, along with a historical update mean vector $\boldsymbol{\mu}_t \in \mathbb{R}^d$. This basis is iteratively trained on the global updates using Incremental PCA (IPCA) to accommodate incoming updates online without storing past weights:
 
-$$W_{t+1}, \boldsymbol{\mu}_{t+1} = \text{IPCA\_Update}(W_t, \boldsymbol{\mu}_t, \Delta \mathbf{w}_t)$$
+$$\mathbf{W}_{t+1}, \boldsymbol{\mu}_{t+1} = \text{IPCA_Update}(\mathbf{W}_t, \boldsymbol{\mu}_t, \Delta \mathbf{w}_t)$$
 
 ### Client-Side Dynamic Projection
 For a target dimensionality $K \ll d$, the client projects the parameter delta onto the server's orthogonal basis $W_t$:
