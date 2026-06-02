@@ -160,7 +160,7 @@ If you use this research or implementation code in your publications, please cit
 ```bibtex
 @misc{kundu2026resource,
   title={Resource-Efficient Federated Learning for Privacy-Preserving Medical Diagnostics},
-  author={Kundu, Soham},
+  author={Kundu, Soham, Arjak Ghosh},
   year={2026},
   publisher={GitHub},
   url={https://github.com/sohamkundu/federated-medical-diagnosis}
