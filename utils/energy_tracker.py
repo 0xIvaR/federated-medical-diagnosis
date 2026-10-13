@@ -1,10 +1,16 @@
+import os
 import torch
 import time
 from codecarbon import EmissionsTracker
 
 class EnergyTracker:
-    def __init__(self, project_name="centralized_baseline"):
-        self.tracker = EmissionsTracker(project_name=project_name, log_level='warning')
+    def __init__(self, project_name="centralized_baseline", output_dir="results"):
+        os.makedirs(output_dir, exist_ok=True)
+        self.tracker = EmissionsTracker(
+            project_name=project_name,
+            output_dir=output_dir,
+            log_level='warning'
+        )
         self.start_time = None
         self.total_flops = 0
     

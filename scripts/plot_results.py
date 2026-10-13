@@ -154,6 +154,76 @@ def plot_bandwidth():
     plt.close()
     print("[SUCCESS] Saved results/bandwidth_reduction.png")
 
+def plot_energy_comparison():
+    csv_path = "results/emissions.csv"
+    if not os.path.exists(csv_path):
+        print(f"Notice: {csv_path} not found. Skipping energy comparison plot.")
+        return
+
+    try:
+        df = pd.read_csv(csv_path)
+    except Exception as e:
+        print(f"Warning: Failed to read {csv_path}: {e}")
+        return
+
+    centralized = df[df['project_name'].str.contains('centralized', case=False, na=False)]
+    federated = df[df['project_name'].str.contains('federated', case=False, na=False)]
+
+    if centralized.empty or federated.empty:
+        print("Notice: Energy comparison requires both centralized and federated runs in results/emissions.csv. Skipping plot until federated run executes.")
+        return
+
+    # Take the latest run for each
+    cent_row = centralized.iloc[-1]
+    fed_row = federated.iloc[-1]
+
+    cent_emissions = float(cent_row['emissions'])
+    fed_emissions = float(fed_row['emissions'])
+    cent_kwh = float(cent_row.get('energy_consumed', 0.0))
+    fed_kwh = float(fed_row.get('energy_consumed', 0.0))
+    cent_time_min = float(cent_row['duration']) / 60.0
+    fed_time_min = float(fed_row['duration']) / 60.0
+
+    emissions_reduction = ((cent_emissions - fed_emissions) / (cent_emissions + 1e-12)) * 100.0
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5))
+
+    # Subplot 1: Carbon Emissions
+    labels = ['Centralized\nBaseline', 'Federated\n(FIPCA + DP)']
+    emissions_vals = [cent_emissions * 1000, fed_emissions * 1000] # In grams
+    colors = [PALETTE['accent'], PALETTE['green']]
+
+    bars1 = ax1.bar(labels, emissions_vals, color=colors, width=0.45, alpha=0.85)
+    ax1.set_ylabel('Carbon Emissions (g CO₂eq)')
+    ax1.set_title('Carbon Emissions Comparison', pad=12)
+    for bar in bars1:
+        h = bar.get_height()
+        ax1.annotate(f'{h:.2f} g', xy=(bar.get_x() + bar.get_width() / 2, h),
+                     xytext=(0, 3), textcoords="offset points", ha='center', va='bottom',
+                     fontsize=10, fontweight='bold')
+
+    if emissions_reduction > 0:
+        ax1.text(0.5, max(emissions_vals) * 0.75, f'{emissions_reduction:.1f}% Reduction',
+                 ha='center', fontsize=11, fontweight='bold', color=PALETTE['green'])
+
+    # Subplot 2: Energy Consumed
+    kwh_vals = [cent_kwh * 1000, fed_kwh * 1000] if cent_kwh > 0 else [cent_time_min, fed_time_min]
+    y_label = 'Energy Consumed (Wh)' if cent_kwh > 0 else 'Compute Duration (Minutes)'
+    bars2 = ax2.bar(labels, kwh_vals, color=[PALETTE['neutral_dark'], PALETTE['primary']], width=0.45, alpha=0.85)
+    ax2.set_ylabel(y_label)
+    ax2.set_title('Energy / Compute Footprint', pad=12)
+    for bar in bars2:
+        h = bar.get_height()
+        unit = 'Wh' if cent_kwh > 0 else 'm'
+        ax2.annotate(f'{h:.2f} {unit}', xy=(bar.get_x() + bar.get_width() / 2, h),
+                     xytext=(0, 3), textcoords="offset points", ha='center', va='bottom',
+                     fontsize=10, fontweight='bold')
+
+    plt.tight_layout()
+    plt.savefig("results/energy_comparison.png")
+    plt.close()
+    print("[SUCCESS] Saved results/energy_comparison.png")
+
 if __name__ == "__main__":
     print("="*60)
     print("GENERATING RESEARCH FIGURES")
@@ -162,6 +232,7 @@ if __name__ == "__main__":
     plot_privacy_utility()
     plot_convergence()
     plot_bandwidth()
+    plot_energy_comparison()
     
     print("="*60)
     print("FIGURE GENERATION COMPLETED SUCCESSFULLY")

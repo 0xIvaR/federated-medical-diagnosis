@@ -64,7 +64,7 @@ class FlowerClient(NumPyClient):
         pca_fitted = config.get("pca_fitted", "0") == "1"
         basis_version = int(config.get("basis_version", "-1"))
         min_components = int(config.get("pca_min_components", "8"))
-        max_recon_error = float(config.get("pca_max_recon_error", "0.05"))
+        max_recon_error = float(config.get("pca_max_recon_error", "0.15"))
 
         if pca_fitted and basis_version > FlowerClient._cached_basis_version and "pca_components" in config:
             n_k = int(config["n_components"])
@@ -88,6 +88,8 @@ class FlowerClient(NumPyClient):
             recon_error = float(
                 np.linalg.norm(reconstructed - local_flat) / (np.linalg.norm(local_flat) + 1e-12)
             )
+            compression_decision = "COMPRESSED" if recon_error <= max_recon_error else "RAW FALLBACK"
+            print(f"[CLIENT {self.client_id if hasattr(self, 'client_id') else '?'}] Round recon_error={recon_error:.4f} -> {compression_decision}")
 
             if components.shape[0] >= min_components and recon_error <= max_recon_error:
                 dp_epsilon = float(config.get("dp_epsilon", "0"))

@@ -21,10 +21,10 @@ DEFAULTS = {
     "DP_EPSILON": 5.0,
     "DP_CLIP_NORM": 1.0,
     "RANDOM_SEED": 42,
-    "TARGET_COMPONENTS": 15,
+    "TARGET_COMPONENTS": 20,
     "FIPCA_WARMUP_ROUNDS": 6,
     "FIPCA_MIN_COMPONENTS": 8,
-    "FIPCA_MAX_RECON_ERROR": 0.05,
+    "FIPCA_MAX_RECON_ERROR": 0.15,
     "DAA_DISTANCE_STRENGTH": 0.35,
     "DAA_MIN_WEIGHT": 0.20,
     "DAA_MAX_WEIGHT": 0.45,
@@ -92,6 +92,7 @@ from data.partition_generator import get_noniid_client_loaders
 from federated.client import FlowerClient
 from federated.strategies.distance_aware_agg import DistanceAwareAggregation
 from federated.strategies.fed_avg import weighted_average
+from utils.energy_tracker import EnergyTracker
 
 
 def client_fn(cid: str):
@@ -160,6 +161,10 @@ def main():
         server_lr_compressed=SERVER_LR_COMPRESSED,
     )
     
+    # Initialize CodeCarbon energy and emissions tracking
+    energy_tracker = EnergyTracker(project_name="federated_m6b_target", output_dir="results")
+    energy_tracker.start()
+    
     fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=NUM_CLIENTS,
@@ -167,6 +172,10 @@ def main():
         strategy=strategy,
         client_resources={"num_cpus": 2, "num_gpus": 0.3}
     )
+    
+    energy_stats = energy_tracker.stop()
+    print(f"\n[ENERGY] Emissions: {energy_stats.get('emissions_kg', 0):.6f} kg CO2 | "
+          f"Duration: {energy_stats.get('time_seconds', 0):.1f}s ({energy_stats.get('time_minutes', 0):.2f} min)")
     
     print("\n" + "="*60)
     print("M6B: DP + FIPCA COMPLETE")
